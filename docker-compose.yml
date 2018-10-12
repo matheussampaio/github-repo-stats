@@ -1,0 +1,17 @@
+version: "3.7"
+
+services:
+  app:
+    build: .
+    command: "node src/index.js"
+    ports:
+      - "3000:3000"
+    env_file: .env
+    volumes:
+      - ./src:/opt/app/src:delegated
+      - ./package.json:/opt/app/package.json
+      - ./package-lock.json:/opt/app/package-lock.json
+      - notused:/opt/app/node_modules
+
+volumes:
+  notused:
