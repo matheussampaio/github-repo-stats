@@ -3,7 +3,7 @@ const pino = require('pino')
 const octokit = require('@octokit/rest')()
 
 const logger = pino({
-  level: process.env.LOG_LEVEL
+  level: process.env.LOG_LEVEL || 'info'
 })
 
 const parsePullRequest = jsonata(`{
@@ -18,6 +18,7 @@ const parsePullRequest = jsonata(`{
 
 const parseReviews = jsonata(`data.{
   "login": user.login,
+  "state": state,
   "submitted_at": submitted_at
 }`)
 
@@ -37,8 +38,8 @@ async function main() {
   logger.debug('requesting pull requests...')
   const { data: pullRequests } = await octokit.pullRequests.getAll({
     ...project,
-    state: 'closed',
-    per_page: 10,
+    state: 'open',
+    per_page: 100,
     page: 1
   })
   logger.debug(`${pullRequests.length} fetched.`)

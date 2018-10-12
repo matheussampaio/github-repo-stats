@@ -6,7 +6,7 @@ services:
       context: .
       args:
         - NODE_ENV=${NODE_ENV-development}
-    command: node_modules/.bin/pino src/index.js | node_modules/.bin/pino-pretty
+    command: node_modules/.bin/nodemon src/index.js
     ports:
       - "3000:3000"
     tty: true
