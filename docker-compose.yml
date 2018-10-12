@@ -2,15 +2,19 @@ version: "3.7"
 
 services:
   app:
-    build: .
-    command: "node src/index.js"
+    build:
+      context: .
+      args:
+        - NODE_ENV=${NODE_ENV-development}
+    command: node_modules/.bin/pino src/index.js | node_modules/.bin/pino-pretty
     ports:
       - "3000:3000"
+    tty: true
     env_file: .env
+    environment:
+      - NODE_ENV=${NODE_ENV-development}
     volumes:
-      - ./src:/opt/app/src:delegated
-      - ./package.json:/opt/app/package.json
-      - ./package-lock.json:/opt/app/package-lock.json
+      - .:/opt/app
       - notused:/opt/app/node_modules
 
 volumes:

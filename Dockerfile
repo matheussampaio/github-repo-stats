@@ -1,7 +1,12 @@
 FROM node:10-alpine
 
+# set our node environment, either development or production
+# defaults to production, compose overrides this to development on build and run
+ARG NODE_ENV=production
+ENV NODE_ENV $NODE_ENV
+
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /opt/app
 
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
