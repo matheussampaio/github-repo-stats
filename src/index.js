@@ -1,73 +1,90 @@
-const jsonata = require('jsonata')
-const pino = require('pino')
-const octokit = require('@octokit/rest')()
+const dotenv = require('dotenv')
 
-const logger = pino({
-  level: process.env.LOG_LEVEL || 'info'
-})
+dotenv.config()
 
-const parsePullRequest = jsonata(`{
-  "owner": user.login,
-  "title": title,
-  "created_at": created_at,
-  "closed_at": closed_at,
-  "requested_reviewers": requested_reviewers.{
-  	"login": login
-   }
-}`)
-
-const parseReviews = jsonata(`data.{
-  "login": user.login,
-  "state": state,
-  "submitted_at": submitted_at
-}`)
-
-const project = {
-  owner: 'natgeo',
-  repo: 'web-components',
-}
+const Github = require('./github')
+const logger = require('./logger')
+const Database = require('./database')
 
 async function main() {
-  logger.debug('authenticating...')
-  octokit.authenticate({
-    type: 'token',
-    token: process.env.GITHUB_ACCESS_TOKEN
-  })
-  logger.debug('authenticated.')
-
-  logger.debug('requesting pull requests...')
-  const { data: pullRequests } = await octokit.pullRequests.getAll({
-    ...project,
-    state: 'open',
-    per_page: 100,
-    page: 1
-  })
-  logger.debug(`${pullRequests.length} fetched.`)
-
-  const pullRequestInformations = []
-
-  for (let i = 0; i < pullRequests.length; i++) {
-    const pullRequest = pullRequests[i]
-
-    pullRequestInformations.push(await getPullRequestInformations(pullRequest))
+  if (process.env.GITHUB_REPOSITORIES == null) {
+    return logger.error('Missing environment variable: GITHUB_REPOSITORIES')
   }
 
-  return pullRequestInformations
-}
+  const projects = process.env.GITHUB_REPOSITORIES.split(',').map(repository => {
+    const [owner, repo] = repository.split('/')
 
-async function getPullRequestInformations(pullRequest) {
-  logger.debug(`getting information about PR ${pullRequest.number}`)
-
-  const informations = parsePullRequest.evaluate(pullRequest)
-
-  const reviews = await octokit.pullRequests.getReviews({
-    ...project,
-    number: pullRequest.number
+    return { owner, repo }
   })
 
-  informations.reviews = parseReviews.evaluate(reviews)
+  const databases = {}
 
-  return informations
+  projects.forEach((project) => {
+    const namespace = getNamespaceFromProject(project)
+    databases[namespace] = new Database(namespace)
+  })
+
+  if (process.env.DOWNLOAD_EVERYTHING) {
+    const github = new Github()
+
+    await github.authenticate()
+
+    const limit = await github.rateLimit()
+
+    logger.info('RATE LIMIT', limit.rate.remaining)
+
+    for (let i = 0; i < projects.length; i++) {
+      const project = projects[i]
+
+      const database = databases[getNamespaceFromProject(project)]
+
+      await github.downloadPullRequests(project, database)
+
+      await github.downloadCommits(project, database)
+
+      database.write()
+    }
+  }
+
+  const allDb = {
+    pull_requests: {}
+  }
+
+  // metrics by project
+  projects.forEach((project) => {
+    const namespace = getNamespaceFromProject(project)
+    const database = databases[namespace]
+    const pullRequests = database.get('pull_requests').value()
+
+    Object.assign(allDb.pull_requests, pullRequests)
+
+    getPullRequestTopCreators(namespace, pullRequests)
+  })
+
+  // aggregated metrics
+  const namespace = `All`
+  getPullRequestTopCreators(namespace, allDb.pull_requests)
 }
 
-main().then(response => console.log(JSON.stringify(response, null, 2)))
+const topPullRequestCreatorExpression = require('./queries/top_pull_request_creator')
+const jsonata = require('jsonata')
+
+function getPullRequestTopCreators(namespace, pullRequests) {
+  const top = jsonata(topPullRequestCreatorExpression).evaluate(pullRequests)
+
+  logger.info(`[${namespace}] Ranking pull requests`, sortObjectByValue(top))
+}
+
+function sortObjectByValue(object) {
+  const sortedObject = {}
+
+  Object.keys(object).sort((a, b) => object[b] - object[a]).forEach(login => sortedObject[login] = object[login])
+
+  return sortedObject
+}
+
+function getNamespaceFromProject(project) {
+  return `${project.owner}-${project.repo}`
+}
+
+main().catch(error => logger.error(error))
