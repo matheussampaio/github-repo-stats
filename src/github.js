@@ -1,11 +1,11 @@
+const _ = require('lodash')
 const octokit = require('@octokit/rest')
 const pagination = require('@octokit/rest/plugins/pagination')
-const _ = require('lodash')
 
 octokit.plugin(pagination)
 
-const transformations = require('./transformations')
 const logger = require('./logger')
+const transformations = require('./transformations')
 
 class Github {
   constructor() {

@@ -3,10 +3,10 @@ const jsonata = require('jsonata')
 
 dotenv.config()
 
+const Database = require('./database')
 const Github = require('./github')
 const logger = require('./logger')
-const Database = require('./database')
-const topPullRequestCreatorExpression = require('./queries/top_pull_request_creator')
+const stats = require('./stats')
 
 async function main() {
   if (process.env.GITHUB_REPOSITORIES == null) {
@@ -48,38 +48,13 @@ async function main() {
     }
   }
 
-  const allDb = {
-    pull_requests: {}
-  }
-
   // metrics by project
   projects.forEach((project) => {
     const namespace = getNamespaceFromProject(project)
     const database = databases[namespace]
-    const pullRequests = database.get('pull_requests').value()
 
-    Object.assign(allDb.pull_requests, pullRequests)
-
-    getPullRequestTopCreators(namespace, pullRequests)
+    stats.forEach(stat => stat(namespace, database))
   })
-
-  // aggregated metrics
-  const namespace = `All`
-  getPullRequestTopCreators(namespace, allDb.pull_requests)
-}
-
-function getPullRequestTopCreators(namespace, pullRequests) {
-  const top = jsonata(topPullRequestCreatorExpression).evaluate(pullRequests)
-
-  logger.info(`[${namespace}] Ranking pull requests`, sortObjectByValue(top))
-}
-
-function sortObjectByValue(object) {
-  const sortedObject = {}
-
-  Object.keys(object).sort((a, b) => object[b] - object[a]).forEach(login => sortedObject[login] = object[login])
-
-  return sortedObject
 }
 
 function getNamespaceFromProject(project) {

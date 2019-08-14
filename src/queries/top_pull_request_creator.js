@@ -1,5 +1,5 @@
 module.exports = `(
   $.*.user{
-    login ~> $lowercase ~> $count
+    login ~> $lowercase : login ~> $count
   }
 )`
