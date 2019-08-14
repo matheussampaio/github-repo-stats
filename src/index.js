@@ -55,10 +55,16 @@ async function main() {
 
     stats.forEach(stat => stat(namespace, database))
   })
+
+  return { databases, projects }
 }
 
 function getNamespaceFromProject(project) {
   return `${project.owner}-${project.repo}`
 }
 
-main().catch(error => logger.error(error))
+module.exports = main
+
+if (require.main === module) {
+  main().catch(error => logger.error(error))
+}
