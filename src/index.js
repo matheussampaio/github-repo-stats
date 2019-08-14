@@ -1,10 +1,12 @@
 const dotenv = require('dotenv')
+const jsonata = require('jsonata')
 
 dotenv.config()
 
 const Github = require('./github')
 const logger = require('./logger')
 const Database = require('./database')
+const topPullRequestCreatorExpression = require('./queries/top_pull_request_creator')
 
 async function main() {
   if (process.env.GITHUB_REPOSITORIES == null) {
@@ -65,9 +67,6 @@ async function main() {
   const namespace = `All`
   getPullRequestTopCreators(namespace, allDb.pull_requests)
 }
-
-const topPullRequestCreatorExpression = require('./queries/top_pull_request_creator')
-const jsonata = require('jsonata')
 
 function getPullRequestTopCreators(namespace, pullRequests) {
   const top = jsonata(topPullRequestCreatorExpression).evaluate(pullRequests)

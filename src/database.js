@@ -4,8 +4,7 @@ const FileSync = require('lowdb/adapters/FileSync')
 const logger = require('./logger')
 
 const DEFAULTS = {
-  pull_requests: {},
-
+  pull_requests: {}
 }
 
 class Database {
