@@ -1,9 +1,25 @@
 # Github Repository Stats
 
-1. Pull request ranking
-1. Commits ranking
-1. Reviews ranking
-1. Comments ranking
-1. Average time to merge a pull request
-1. Average number of pull requests created per day
-1. Average time to review a pull request
+## How to configure
+Create a `.env` from `.env.example`, add you access token, and update `GITHUB_REPOSITORIES` with your repositories.
+
+## How to run
+
+With Docker:
+```shell
+$ docker-compose up
+```
+
+With Node:
+```shell
+$ npm start
+```
+
+## Stats
+- [x] Pull request ranking
+- [ ] Commits ranking
+- [ ] Reviews ranking
+- [ ] Comments ranking
+- [ ] Average time to merge a pull request
+- [ ] Average number of pull requests created per day
+- [ ] Average time to review a pull request
